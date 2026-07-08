@@ -458,3 +458,42 @@ details.transcript pre {
 }
 .share-row input:focus { outline: none; border-color: var(--accent); }
 .modal-actions { display: flex; justify-content: space-between; }
+
+/* Back link hidden on desktop; shown on mobile. */
+.back-btn { display: none; }
+
+/* --- Mobile: master-detail (list ↔ full-screen detail) ------------------- */
+
+@media (max-width: 720px) {
+  body { overflow: auto; }
+  .app {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+  }
+  .sidebar {
+    height: 100vh;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  /* Show the list by default; hide the detail until a project is opened. */
+  .detail { display: none; }
+  .app.detail-open .sidebar { display: none; }
+  .app.detail-open .detail { display: block; }
+
+  .back-btn { display: inline-flex; align-self: flex-start; margin-bottom: 6px; }
+
+  .detail { padding: 18px 16px 48px; }
+  .detail-header { flex-wrap: wrap; gap: 12px; }
+  .detail-header h2 { font-size: 20px; }
+  .header-actions { width: 100%; }
+  .header-actions .icon-btn { flex: 1; text-align: center; }
+
+  .chat-msg { max-width: 92%; }
+  .modal { width: 100%; }
+
+  /* Comfortable tap targets */
+  .rec-item { padding: 14px; }
+  .clip-head { padding: 14px 12px; }
+  .chat-input-row input { padding: 12px; }
+}

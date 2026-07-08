@@ -8,6 +8,11 @@ let openClips = new Set();
 let pollTimer = null;
 let showArchived = false;
 
+const appEl = document.querySelector('.app');
+// On mobile these toggle between the project list and the full-screen detail.
+function showDetail() { appEl.classList.add('detail-open'); }
+function showList() { appEl.classList.remove('detail-open'); }
+
 // --- Helpers ---------------------------------------------------------------
 
 async function api(url, opts) {
@@ -158,6 +163,7 @@ async function setArchived(id, archived) {
     if (archived && selectedId === id) {
       selectedId = null;
       detail.innerHTML = '<div class="empty"><p class="muted">Project archived.</p></div>';
+      showList();
     }
     loadProjects();
   } catch (e) { toast(e.message); }
@@ -170,6 +176,7 @@ async function deleteProject(project) {
     if (selectedId === project.id) {
       selectedId = null;
       detail.innerHTML = '<div class="empty"><p>Project deleted.</p></div>';
+      showList();
     }
     loadProjects();
   } catch (e) { toast(e.message); }
@@ -186,6 +193,7 @@ async function selectProject(id) {
   const project = await api(`/api/projects/${id}`);
   await loadProjects();
   renderProject(project);
+  showDetail();
 }
 
 function renderProject(project) {
@@ -197,7 +205,11 @@ function renderProject(project) {
 
   detail.innerHTML = `
     <div class="detail-header">
-      <div><h2>${escapeHtml(project.name)}</h2><span class="muted">${fmtDate(project.created_at)}</span></div>
+      <div>
+        <button class="icon-btn back-btn" id="back-btn">‹ Projects</button>
+        <h2>${escapeHtml(project.name)}</h2>
+        <span class="muted">${fmtDate(project.created_at)}</span>
+      </div>
       <div class="header-actions">
         <button class="icon-btn ${project.share_token ? 'shared' : ''}" id="share-btn">${project.share_token ? '🔗 Shared' : 'Share'}</button>
         <button class="icon-btn" id="delete-project-btn">Delete project</button>
@@ -285,6 +297,7 @@ function clipHtml(c) {
 }
 
 function bindProjectControls(project) {
+  document.getElementById('back-btn').addEventListener('click', showList);
   document.getElementById('delete-project-btn').addEventListener('click', () => deleteProject(project));
 
   document.getElementById('reanalyze-btn')?.addEventListener('click', async () => {

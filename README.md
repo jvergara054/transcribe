@@ -44,8 +44,12 @@ gives you a combined view across all of them.
 ## Notes
 
 - Audio files must be **≤ 25 MB**.
-- Model overrides (in `.env`): `GROQ_MODEL` for the LLM, `GROQ_WHISPER_MODEL`
-  for transcription.
+- **Free-tier fallback:** analysis/chat run on `GROQ_MODEL`
+  (`meta-llama/llama-4-scout-17b-16e-instruct`) and automatically retry on
+  `GROQ_FALLBACK_MODEL` (`llama-3.1-8b-instant`) if the primary hits Groq's
+  free daily token cap — so it degrades gracefully instead of erroring.
+- Model overrides (in `.env`): `GROQ_MODEL`, `GROQ_FALLBACK_MODEL`,
+  `GROQ_WHISPER_MODEL`.
 - Data lives in `data.db` and `uploads/` — both git-ignored. Set `DATA_DIR` to
   relocate both (used for hosting on a persistent disk).
 

@@ -1,0 +1,21 @@
+# Render Blueprint — deploy with: New + → Blueprint → point at this repo.
+# NOTE: the persistent disk below requires a paid instance (Starter+).
+# On the free plan the disk is ignored and data resets on each deploy/restart.
+services:
+  - type: web
+    name: transcribe
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false          # set this in the Render dashboard (kept secret)
+      - key: APP_PASSWORD
+        sync: false          # set a login password in the dashboard
+      - key: DATA_DIR
+        value: /data         # SQLite DB + uploaded audio live here
+    disk:
+      name: transcribe-data
+      mountPath: /data
+      sizeGB: 1

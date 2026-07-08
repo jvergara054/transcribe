@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transcribe</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <h1 class="brand">🎙️ Transcribe</h1>
+      <button class="btn full" id="new-project-btn">+ New Project</button>
+      <div class="library" id="project-list"></div>
+      <button class="toggle-archived" id="toggle-archived">Show archived</button>
+      <button class="toggle-archived" id="logout-btn" style="display:none">Log out</button>
+    </aside>
+
+    <main class="detail" id="detail">
+      <div class="empty" id="empty-state">
+        <p>Create a project to get started.</p>
+        <p class="muted">A project holds multiple clips. You'll get a combined summary, insights, and next steps across all of them — and one chat that knows every clip.</p>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

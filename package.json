@@ -1,0 +1,20 @@
+{
+  "name": "transcribe-tool",
+  "version": "1.0.0",
+  "description": "Local web app: upload audio, get transcript + summary/insights/next-steps, and chat about the content.",
+  "type": "commonjs",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "multer": "^2.2.0",
+    "openai": "^4.67.0"
+  }
+}

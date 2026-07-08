@@ -50,6 +50,28 @@ function listItems(arr) {
   return arr.map((i) => `<li>${escapeHtml(i)}</li>`).join('');
 }
 
+// Dates & Appointments rendered as highlighted chips.
+function datesHtml(arr) {
+  if (!arr || !arr.length) return '<p class="muted">None</p>';
+  return `<div class="date-chips">${arr
+    .map((d) => `<span class="date-chip">📅 ${escapeHtml(d)}</span>`)
+    .join('')}</div>`;
+}
+
+// The four analysis sections, shared by the combined view, each clip, and the
+// public shared page. `obj` has { summary, insights, dates, next_steps }.
+function analysisSectionsHtml(obj, headingTag = 'h4') {
+  const h = headingTag;
+  const dates = (obj.dates && obj.dates.length)
+    ? `<${h}>Dates & Appointments</${h}>${datesHtml(obj.dates)}`
+    : '';
+  return `
+    <${h}>Summary</${h}><p>${escapeHtml(obj.summary || '')}</p>
+    <${h}>Key Takeaways</${h}><ul>${listItems(obj.insights)}</ul>
+    ${dates}
+    <${h}>Tasks</${h}><ul>${listItems(obj.next_steps)}</ul>`;
+}
+
 // --- Sidebar: project list -------------------------------------------------
 
 async function loadProjects() {
@@ -176,13 +198,16 @@ function renderProject(project) {
   detail.innerHTML = `
     <div class="detail-header">
       <div><h2>${escapeHtml(project.name)}</h2><span class="muted">${fmtDate(project.created_at)}</span></div>
-      <button class="icon-btn" id="delete-project-btn">Delete project</button>
+      <div class="header-actions">
+        <button class="icon-btn ${project.share_token ? 'shared' : ''}" id="share-btn">${project.share_token ? '🔗 Shared' : 'Share'}</button>
+        <button class="icon-btn" id="delete-project-btn">Delete project</button>
+      </div>
     </div>
 
     <label class="detail-drop" id="detail-drop">
-      <input type="file" id="file-input" accept="audio/*,.m4a,.mp3,.wav,.webm,.ogg,.flac" hidden />
-      <span class="dropzone-title">Drop a clip here or click to add</span>
-      <span class="dropzone-hint">mp3, m4a, wav, webm… up to 25 MB</span>
+      <input type="file" id="file-input" accept="audio/*,.m4a,.mp3,.wav,.webm,.ogg,.flac" multiple hidden />
+      <span class="dropzone-title">Drop clips here or click to add</span>
+      <span class="dropzone-hint">one or many — mp3, m4a, wav, webm… up to 25 MB each</span>
     </label>
 
     ${combinedAnalysisHtml(project, doneCount)}
@@ -224,10 +249,7 @@ function combinedAnalysisHtml(project, doneCount) {
     inner = `<p class="error-box">⚠ ${escapeHtml(project.analysis_error || 'Analysis failed.')}</p>
              <br /><button class="btn" id="reanalyze-btn">Retry analysis</button>`;
   } else if (status === 'done') {
-    inner = `
-      <h4>Summary</h4><p>${escapeHtml(project.summary || '')}</p>
-      <h4>Insights</h4><ul>${listItems(project.insights)}</ul>
-      <h4>Next Steps</h4><ul>${listItems(project.next_steps)}</ul>`;
+    inner = analysisSectionsHtml(project);
   } else {
     // empty or stale
     inner = doneCount === 0
@@ -247,9 +269,7 @@ function clipHtml(c) {
             <br /><button class="btn secondary retry-clip" data-id="${c.id}">Retry</button>`;
   } else {
     body = `
-      <h4>Summary</h4><p>${escapeHtml(c.summary || '')}</p>
-      <h4>Insights</h4><ul>${listItems(c.insights)}</ul>
-      <h4>Next Steps</h4><ul>${listItems(c.next_steps)}</ul>
+      ${analysisSectionsHtml(c)}
       <h4>Transcript</h4><pre>${escapeHtml(c.transcript || '')}</pre>`;
   }
   return `
@@ -274,15 +294,18 @@ function bindProjectControls(project) {
     } catch (e) { toast(e.message); }
   });
 
-  // Upload
+  // Share
+  document.getElementById('share-btn').addEventListener('click', () => openShareDialog(project));
+
+  // Upload (one or many)
   const input = document.getElementById('file-input');
   const drop = document.getElementById('detail-drop');
-  input.addEventListener('change', (e) => { uploadClip(project.id, e.target.files[0]); input.value = ''; });
+  input.addEventListener('change', (e) => { uploadClips(project.id, e.target.files); input.value = ''; });
   ['dragenter', 'dragover'].forEach((ev) =>
     drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('drag'); }));
   ['dragleave', 'drop'].forEach((ev) =>
     drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('drag'); }));
-  drop.addEventListener('drop', (e) => uploadClip(project.id, e.dataTransfer.files[0]));
+  drop.addEventListener('drop', (e) => uploadClips(project.id, e.dataTransfer.files));
 
   // Clip accordion toggles
   detail.querySelectorAll('.clip-head').forEach((head) => {
@@ -355,7 +378,7 @@ async function sendChat(projectId) {
   input.disabled = true;
   sendBtn.disabled = true;
   log.insertAdjacentHTML('beforeend', `<div class="chat-msg user">${escapeHtml(question)}</div>`);
-  log.insertAdjacentHTML('beforeend', `<div class="chat-msg assistant" id="pending"><span class="spinner"></span></div>`);
+  log.insertAdjacentHTML('beforeend', `<div class="chat-msg assistant thinking" id="pending"><span class="dots"><span></span><span></span><span></span></span> Thinking…</div>`);
   log.scrollTop = log.scrollHeight;
 
   try {
@@ -378,13 +401,14 @@ async function sendChat(projectId) {
 
 // --- Upload ----------------------------------------------------------------
 
-async function uploadClip(projectId, file) {
-  if (!file) return;
+async function uploadClips(projectId, fileList) {
+  const files = [...(fileList || [])];
+  if (!files.length) return;
   const form = new FormData();
-  form.append('audio', file);
-  form.append('title', file.name);
+  for (const f of files) form.append('audio', f);
   try {
-    await api(`/api/projects/${projectId}/recordings`, { method: 'POST', body: form });
+    const { created } = await api(`/api/projects/${projectId}/recordings`, { method: 'POST', body: form });
+    if (files.length > 1) toast(`Added ${created} clips — transcribing…`);
     await selectProject(projectId);
   } catch (e) {
     toast(e.message);
@@ -415,6 +439,57 @@ toggleArchivedBtn.addEventListener('click', () => {
   toggleArchivedBtn.classList.toggle('active', showArchived);
   loadProjects();
 });
+
+// --- Share dialog ----------------------------------------------------------
+
+async function openShareDialog(project) {
+  let token = project.share_token;
+  try {
+    if (!token) {
+      const r = await api(`/api/projects/${project.id}/share`, { method: 'POST' });
+      token = r.token;
+      project.share_token = token;
+    }
+  } catch (e) { toast(e.message); return; }
+
+  const url = `${window.location.origin}/shared/${token}`;
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>Share “${escapeHtml(project.name)}”</h3>
+      <p class="muted">Anyone with this link can view a read-only version of this
+        project — summary, takeaways, dates, tasks, and transcripts. No login required.</p>
+      <div class="share-row">
+        <input type="text" id="share-url" readonly value="${escapeHtml(url)}" />
+        <button class="btn" id="copy-url">Copy</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn secondary" id="revoke-share">Revoke link</button>
+        <button class="btn" id="close-share">Done</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  overlay.querySelector('#close-share').addEventListener('click', close);
+  overlay.querySelector('#copy-url').addEventListener('click', async () => {
+    overlay.querySelector('#share-url').select();
+    try { await navigator.clipboard.writeText(url); } catch { document.execCommand('copy'); }
+    const b = overlay.querySelector('#copy-url');
+    b.textContent = 'Copied!';
+    setTimeout(() => { if (b.isConnected) b.textContent = 'Copy'; }, 1500);
+  });
+  overlay.querySelector('#revoke-share').addEventListener('click', async () => {
+    try {
+      await api(`/api/projects/${project.id}/share`, { method: 'DELETE' });
+      close();
+      toast('Share link revoked.');
+      selectProject(project.id);
+    } catch (e) { toast(e.message); }
+  });
+}
 
 // --- Auth: show logout when a login is in effect ---------------------------
 

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shared project — Transcribe</title>
+  <style>
+    :root {
+      --bg:#0f1115; --panel:#171a21; --panel-2:#1e222b; --border:#2a2f3a;
+      --text:#e6e8ec; --muted:#9aa2b1; --accent:#6ea8fe;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); }
+    .wrap { max-width:760px; margin:0 auto; padding:36px 24px 60px; }
+    .top { color:var(--muted); font-size:13px; margin-bottom:6px; }
+    h1 { font-size:26px; margin:0 0 24px; }
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; margin-bottom:16px; }
+    .card h2 { font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:0 0 12px; }
+    h4 { margin:14px 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+    h4:first-child { margin-top:0; }
+    ul { margin:0; padding-left:20px; } li { margin-bottom:6px; line-height:1.5; }
+    p { margin:0; line-height:1.6; } .muted { color:var(--muted); }
+    .date-chips { display:flex; flex-wrap:wrap; gap:8px; }
+    .date-chip { background:#2a2f3a; border:1px solid var(--accent); color:#cfe0ff; border-radius:999px; padding:5px 12px; font-size:13px; }
+    details { margin-top:10px; } summary { cursor:pointer; color:var(--muted); font-size:13px; }
+    pre { white-space:pre-wrap; word-wrap:break-word; line-height:1.6; margin:10px 0 0; font-family:inherit; }
+    .clip { border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin-bottom:10px; }
+    .clip-title { font-weight:600; margin-bottom:10px; }
+    .foot { text-align:center; color:var(--muted); font-size:12px; margin-top:30px; }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="wrap">
+    <p class="muted" id="loading">Loading…</p>
+  </div>
+
+  <script>
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const listItems = (a) => (a && a.length) ? a.map(i => `<li>${esc(i)}</li>`).join('') : '<li class="muted">None</li>';
+    const dates = (a) => (a && a.length) ? `<div class="date-chips">${a.map(d => `<span class="date-chip">📅 ${esc(d)}</span>`).join('')}</div>` : '<p class="muted">None</p>';
+
+    function sections(o) {
+      const d = (o.dates && o.dates.length) ? `<h4>Dates & Appointments</h4>${dates(o.dates)}` : '';
+      return `
+        <h4>Summary</h4><p>${esc(o.summary)}</p>
+        <h4>Key Takeaways</h4><ul>${listItems(o.insights)}</ul>
+        ${d}
+        <h4>Tasks</h4><ul>${listItems(o.next_steps)}</ul>`;
+    }
+
+    (async () => {
+      const token = location.pathname.split('/').pop();
+      const wrap = document.getElementById('wrap');
+      try {
+        const res = await fetch('/api/shared/' + token);
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Not found');
+        const p = await res.json();
+        const clips = (p.clips || []).map((c) => `
+          <div class="clip">
+            <div class="clip-title">${esc(c.title)}</div>
+            ${sections(c)}
+            <details><summary>Transcript</summary><pre>${esc(c.transcript)}</pre></details>
+          </div>`).join('');
+        wrap.innerHTML = `
+          <p class="top">🎙️ Shared via Transcribe · read-only</p>
+          <h1>${esc(p.name)}</h1>
+          <div class="card"><h2>Combined Analysis</h2>${p.analysis_status === 'done' ? sections(p) : '<p class="muted">Analysis not ready yet.</p>'}</div>
+          <div class="card"><h2>Clips (${(p.clips || []).length})</h2>${clips || '<p class="muted">No clips.</p>'}</div>
+          <p class="foot">This is a read-only shared view.</p>`;
+      } catch (e) {
+        wrap.innerHTML = `<h1>Link unavailable</h1><p class="muted">${esc(e.message)}</p>`;
+      }
+    })();
+  </script>
+</body>
+</html>

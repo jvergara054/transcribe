@@ -389,3 +389,72 @@ details.transcript pre {
 }
 .context-item:hover { background: var(--panel); }
 .context-item.danger { color: var(--danger); }
+
+/* --- Header actions / share ---------------------------------------------- */
+
+.header-actions { display: flex; gap: 8px; }
+.icon-btn.shared { border-color: var(--accent); color: var(--accent); }
+
+/* --- Dates & Appointments chips ------------------------------------------ */
+
+.date-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.date-chip {
+  background: #2a2f3a;
+  border: 1px solid var(--accent);
+  color: #cfe0ff;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* --- Chat thinking indicator --------------------------------------------- */
+
+.chat-msg.thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+.dots { display: inline-flex; gap: 3px; }
+.dots span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--muted);
+  animation: blink 1.4s infinite both;
+}
+.dots span:nth-child(2) { animation-delay: .2s; }
+.dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes blink {
+  0%, 80%, 100% { opacity: .25; }
+  40% { opacity: 1; }
+}
+
+/* --- Modal (share dialog) ------------------------------------------------ */
+
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 2000;
+  background: rgba(0, 0, 0, .55);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  width: 440px;
+  max-width: calc(100vw - 40px);
+}
+.modal h3 { margin: 0 0 8px; font-size: 18px; }
+.modal p.muted { font-size: 13px; line-height: 1.5; margin: 0 0 16px; }
+.share-row { display: flex; gap: 8px; margin-bottom: 18px; }
+.share-row input {
+  flex: 1;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 9px 11px;
+  font-size: 13px;
+}
+.share-row input:focus { outline: none; border-color: var(--accent); }
+.modal-actions { display: flex; justify-content: space-between; }

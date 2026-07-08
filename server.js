@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const express = require('express');
 const multer = require('multer');
 
@@ -50,6 +51,35 @@ app.post('/api/logout', (req, res) => {
   res.json({ ok: true });
 });
 
+// --- Public shared project (no auth) ---------------------------------------
+
+// A read-only, sanitized view of a project reachable only via its share token.
+app.get('/shared/:token', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'shared.html'));
+});
+
+app.get('/api/shared/:token', (req, res) => {
+  const project = db.getProjectByShareToken(req.params.token);
+  if (!project) return res.status(404).json({ error: 'This shared link is invalid or was revoked.' });
+  const clips = db.listRecordingsByProject(project.id).filter((c) => c.status === 'done');
+  res.json({
+    name: project.name,
+    summary: project.summary,
+    insights: project.insights,
+    next_steps: project.next_steps,
+    dates: project.dates,
+    analysis_status: project.analysis_status,
+    clips: clips.map((c) => ({
+      title: c.title,
+      summary: c.summary,
+      insights: c.insights,
+      next_steps: c.next_steps,
+      dates: c.dates,
+      transcript: c.transcript,
+    })),
+  });
+});
+
 // Everything below requires auth (when enabled).
 app.use(auth.requireAuth);
 app.use(express.static(PUBLIC_DIR));
@@ -90,6 +120,7 @@ async function processRecording(id, filePath, projectId) {
       summary: analysis.summary,
       insights: analysis.insights,
       next_steps: analysis.next_steps,
+      dates: analysis.dates,
     });
   } catch (err) {
     console.error(`Processing failed for recording ${id}:`, err.message);
@@ -171,6 +202,26 @@ app.delete('/api/projects/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// Enable (or return existing) public share link for a project.
+app.post('/api/projects/:id/share', (req, res) => {
+  const project = db.getProject(Number(req.params.id));
+  if (!project) return res.status(404).json({ error: 'Not found' });
+  let token = project.share_token;
+  if (!token) {
+    token = crypto.randomBytes(16).toString('hex');
+    db.setProjectShareToken(project.id, token);
+  }
+  res.json({ token, url: `/shared/${token}` });
+});
+
+// Revoke the public share link.
+app.delete('/api/projects/:id/share', (req, res) => {
+  const project = db.getProject(Number(req.params.id));
+  if (!project) return res.status(404).json({ error: 'Not found' });
+  db.setProjectShareToken(project.id, null);
+  res.json({ ok: true });
+});
+
 app.post('/api/projects/:id/reanalyze', (req, res) => {
   const project = db.getProject(Number(req.params.id));
   if (!project) return res.status(404).json({ error: 'Not found' });
@@ -201,20 +252,21 @@ app.post('/api/projects/:id/chat', async (req, res) => {
   }
 });
 
-// Upload a clip into a project.
-app.post('/api/projects/:id/recordings', upload.single('audio'), (req, res) => {
+// Upload one or more clips into a project.
+app.post('/api/projects/:id/recordings', upload.array('audio', 20), (req, res) => {
   const project = db.getProject(Number(req.params.id));
   if (!project) return res.status(404).json({ error: 'Not found' });
-  if (!req.file) return res.status(400).json({ error: 'No audio file provided.' });
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ error: 'No audio file provided.' });
+  }
 
-  const title = (req.body.title || req.file.originalname || 'Untitled').trim();
-  const recording = db.createRecording({
-    project_id: project.id,
-    title,
-    filename: req.file.filename,
+  const created = req.files.map((file) => {
+    const title = (file.originalname || 'Untitled').trim();
+    const recording = db.createRecording({ project_id: project.id, title, filename: file.filename });
+    processRecording(recording.id, path.join(UPLOAD_DIR, file.filename), project.id);
+    return recording;
   });
-  processRecording(recording.id, path.join(UPLOAD_DIR, req.file.filename), project.id);
-  res.status(201).json(recording);
+  res.status(201).json({ created: created.length, recordings: created });
 });
 
 // --- Individual clip routes ------------------------------------------------

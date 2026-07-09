@@ -203,7 +203,7 @@ function setActiveTab(tab) {
   activeTab = tab;
   detail.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === tab));
   detail.querySelectorAll('.tab-panel').forEach((p) => p.classList.toggle('active', p.dataset.panel === tab));
-  if (tab === 'chat') {
+  if (tab === 'overview') {
     const log = document.getElementById('chat-log');
     if (log) log.scrollTop = log.scrollHeight;
   }
@@ -232,11 +232,20 @@ function renderProject(project) {
     <div class="tabs">
       <button class="tab ${activeTab === 'overview' ? 'active' : ''}" data-tab="overview">Overview</button>
       <button class="tab ${activeTab === 'recordings' ? 'active' : ''}" data-tab="recordings">Recordings <span class="tab-count">${clips.length}</span></button>
-      <button class="tab ${activeTab === 'chat' ? 'active' : ''}" data-tab="chat">Chat</button>
     </div>
 
     <div class="tab-panel ${activeTab === 'overview' ? 'active' : ''}" data-panel="overview">
       ${combinedAnalysisHtml(project, doneCount)}
+      <div class="card chat-card">
+        <h3>Chat <span class="count">— across all clips</span></h3>
+        ${doneCount === 0
+          ? '<p class="muted">Add and process at least one clip to start chatting.</p>'
+          : `<div class="chat-log" id="chat-log"></div>
+             <form class="chat-input-row" id="chat-form">
+               <input type="text" id="chat-input" placeholder="Ask about these recordings…" autocomplete="off" />
+               <button class="btn" type="submit" id="chat-send">Send</button>
+             </form>`}
+      </div>
     </div>
 
     <div class="tab-panel ${activeTab === 'recordings' ? 'active' : ''}" data-panel="recordings">
@@ -248,19 +257,6 @@ function renderProject(project) {
       <div class="card">
         <h3>Clips <span class="count">(${clips.length})</span></h3>
         <div id="clips">${clips.length ? clips.map(clipHtml).join('') : '<p class="muted">No clips yet — add one above.</p>'}</div>
-      </div>
-    </div>
-
-    <div class="tab-panel ${activeTab === 'chat' ? 'active' : ''}" data-panel="chat">
-      <div class="card chat-card">
-        <h3>Chat <span class="count">— across all clips</span></h3>
-        ${doneCount === 0
-          ? '<p class="muted">Add and process at least one clip to start chatting.</p>'
-          : `<div class="chat-log" id="chat-log"></div>
-             <form class="chat-input-row" id="chat-form">
-               <input type="text" id="chat-input" placeholder="Ask about these recordings…" autocomplete="off" />
-               <button class="btn" type="submit" id="chat-send">Send</button>
-             </form>`}
       </div>
     </div>`;
 

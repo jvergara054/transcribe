@@ -1,17 +1,21 @@
 :root {
-  --bg: #0f1115;
-  --panel: #171a21;
-  --panel-2: #1e222b;
-  --border: #2a2f3a;
-  --text: #e6e8ec;
-  --muted: #9aa2b1;
-  --accent: #6ea8fe;
-  --accent-2: #7c5cff;
-  --danger: #ff6b6b;
-  --ok: #4ec9a0;
-  --warn: #ffcf70;
-  --radius: 12px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* shadcn slate + blue dark theme */
+  --bg: #020817;          /* background */
+  --panel: #0b1120;       /* card / sidebar surface */
+  --panel-2: #1e293b;     /* secondary / muted surface */
+  --border: #1e293b;      /* border / input */
+  --text: #f8fafc;        /* foreground */
+  --muted: #94a3b8;       /* muted-foreground */
+  --accent: #3b82f6;      /* primary */
+  --accent-2: #3b82f6;    /* primary (unified) */
+  --primary-fg: #f8fafc;
+  --ring: rgba(59, 130, 246, .45);
+  --danger: #f87171;      /* destructive */
+  --ok: #4ade80;
+  --warn: #fbbf24;
+  --radius: 0.625rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 * { box-sizing: border-box; }
@@ -84,7 +88,7 @@ body {
   transition: border-color .15s;
 }
 .rec-item:hover { border-color: var(--accent); }
-.rec-item.active { border-color: var(--accent-2); background: #23283340; }
+.rec-item.active { border-color: var(--accent-2); background: rgba(30, 41, 59, .5); }
 .rec-item .rec-title {
   font-weight: 600;
   font-size: 13px;
@@ -103,14 +107,16 @@ body {
 
 .badge {
   font-size: 10px;
-  padding: 2px 7px;
+  padding: 2px 9px;
   border-radius: 999px;
   text-transform: uppercase;
   letter-spacing: .04em;
+  font-weight: 500;
+  border: 1px solid transparent;
 }
-.badge.processing { background: #3a3320; color: var(--warn); }
-.badge.done { background: #16342a; color: var(--ok); }
-.badge.error { background: #3a1f22; color: var(--danger); }
+.badge.processing { background: rgba(251, 191, 36, .12); color: var(--warn); border-color: rgba(251, 191, 36, .25); }
+.badge.done { background: rgba(74, 222, 128, .12); color: var(--ok); border-color: rgba(74, 222, 128, .25); }
+.badge.error { background: rgba(248, 113, 113, .12); color: var(--danger); border-color: rgba(248, 113, 113, .25); }
 
 /* --- Detail -------------------------------------------------------------- */
 
@@ -142,42 +148,51 @@ body {
 .icon-btn {
   background: transparent;
   border: 1px solid var(--border);
-  color: var(--muted);
-  border-radius: 8px;
-  padding: 6px 10px;
+  color: var(--text);
+  border-radius: calc(var(--radius) - 2px);
+  padding: 7px 12px;
   cursor: pointer;
   font-size: 13px;
+  font-weight: 500;
+  transition: background .15s, border-color .15s, color .15s;
 }
-.icon-btn:hover { border-color: var(--danger); color: var(--danger); }
+.icon-btn:hover { background: var(--panel-2); }
+#delete-project-btn:hover { background: transparent; border-color: var(--danger); color: var(--danger); }
 
 /* --- Tabs ---------------------------------------------------------------- */
 
 .tabs {
-  display: flex;
-  gap: 2px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 18px;
+  display: inline-flex;
+  gap: 4px;
+  background: var(--panel-2);
+  border-radius: calc(var(--radius) - 2px);
+  padding: 4px;
+  margin-bottom: 20px;
 }
 .tab {
   background: none;
   border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+  border-radius: calc(var(--radius) - 4px);
   color: var(--muted);
-  padding: 10px 16px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  transition: background .15s, color .15s;
 }
 .tab:hover { color: var(--text); }
-.tab.active { color: var(--text); border-bottom-color: var(--accent-2); }
+.tab.active {
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+}
 .tab-count {
   font-size: 11px;
   font-weight: 500;
-  background: var(--panel-2);
+  background: var(--bg);
   color: var(--muted);
   border-radius: 999px;
   padding: 1px 8px;
@@ -238,16 +253,24 @@ details.transcript pre {
 
 .btn {
   background: var(--accent-2);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 14px;
+  color: var(--primary-fg);
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) - 2px);
+  padding: 9px 16px;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
+  transition: background .15s, opacity .15s;
 }
+.btn:hover { background: #2f6fe0; }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ring); }
 .btn:disabled { opacity: .5; cursor: default; }
-.btn.secondary { background: var(--panel-2); border: 1px solid var(--border); }
+.btn.secondary {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn.secondary:hover { background: #273449; }
 
 /* --- Chat ---------------------------------------------------------------- */
 
@@ -298,12 +321,12 @@ details.transcript pre {
   font-family: inherit;
   transition: border-color .15s, background .15s;
 }
-.source:hover { border-color: var(--accent); background: #23283355; }
+.source:hover { border-color: var(--accent); background: rgba(30, 41, 59, .6); }
 .source-clip { font-size: 11px; font-weight: 600; color: var(--accent); }
 .source-quote { font-size: 12px; color: var(--muted); line-height: 1.45; }
 
 .clip-body mark {
-  background: #6ea8fe55;
+  background: rgba(59, 130, 246, .35);
   color: var(--text);
   border-radius: 3px;
   padding: 0 2px;
@@ -336,7 +359,7 @@ video.clip-media {
   cursor: pointer;
   transition: background .1s;
 }
-.line:hover { background: #23283366; }
+.line:hover { background: rgba(30, 41, 59, .7); }
 .line .ts {
   flex: 0 0 auto;
   min-width: 36px;
@@ -350,8 +373,8 @@ video.clip-media {
   cursor: pointer;
 }
 .line-text { line-height: 1.55; color: var(--text); }
-.line.active { background: #6ea8fe26; }
-.line.cited { background: #6ea8fe4d; }
+.line.active { background: rgba(59, 130, 246, .16); }
+.line.cited { background: rgba(59, 130, 246, .32); }
 
 .linkbtn {
   background: none;
@@ -380,14 +403,14 @@ video.clip-media {
 .chat-input-row { display: flex; gap: 8px; }
 .chat-input-row input {
   flex: 1;
-  background: var(--panel-2);
+  background: transparent;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: calc(var(--radius) - 2px);
   color: var(--text);
   padding: 10px 12px;
   font-size: 14px;
 }
-.chat-input-row input:focus { outline: none; border-color: var(--accent); }
+.chat-input-row input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
 
 .toast {
   position: fixed;
@@ -411,8 +434,8 @@ video.clip-media {
 
 .rec-item .rec-sub { color: var(--muted); font-size: 11px; }
 
-.badge.empty { background: #262a33; color: var(--muted); }
-.badge.stale { background: #3a3320; color: var(--warn); }
+.badge.empty { background: var(--panel-2); color: var(--muted); border-color: var(--border); }
+.badge.stale { background: rgba(251, 191, 36, .12); color: var(--warn); border-color: rgba(251, 191, 36, .25); }
 
 .detail-drop {
   display: flex;
@@ -449,7 +472,7 @@ video.clip-media {
   cursor: pointer;
   background: var(--panel-2);
 }
-.clip-head:hover { background: #23283340; }
+.clip-head:hover { background: rgba(30, 41, 59, .5); }
 .clip-title { flex: 1; font-size: 13px; font-weight: 600; }
 .clip-caret { color: var(--muted); font-size: 11px; transition: transform .15s; }
 .clip.open .clip-caret { transform: rotate(90deg); }
@@ -543,7 +566,7 @@ video.clip-media {
 
 .date-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .date-chip {
-  background: #2a2f3a;
+  background: var(--panel-2);
   border: 1px solid var(--accent);
   color: #cfe0ff;
   border-radius: 999px;
@@ -593,14 +616,14 @@ video.clip-media {
 .share-row { display: flex; gap: 8px; margin-bottom: 18px; }
 .share-row input {
   flex: 1;
-  background: var(--panel-2);
+  background: transparent;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: calc(var(--radius) - 2px);
   color: var(--text);
   padding: 9px 11px;
   font-size: 13px;
 }
-.share-row input:focus { outline: none; border-color: var(--accent); }
+.share-row input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
 .modal-actions { display: flex; justify-content: space-between; }
 
 /* Back link hidden on desktop; shown on mobile. */

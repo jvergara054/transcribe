@@ -291,13 +291,23 @@ function mediaPlayerHtml(c) {
   return `<audio class="clip-media" id="media-${c.id}" src="${src}" controls preload="metadata"></audio>`;
 }
 
-// Segment-synced transcript when timestamps exist; plain text otherwise.
+function fmtTime(sec) {
+  const s = Math.max(0, Math.floor(sec || 0));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+// Script-style transcript: one line per segment, each with a clickable
+// timestamp. Falls back to plain text for clips without timestamps.
 function transcriptHtml(c) {
   if (c.segments && c.segments.length) {
-    const spans = c.segments
-      .map((s, i) => `<span class="seg" data-i="${i}" data-start="${s.start}">${escapeHtml((s.text || '').trim())} </span>`)
+    const lines = c.segments
+      .map((s, i) => `
+        <div class="line seg" data-i="${i}" data-start="${s.start}">
+          <button type="button" class="ts" tabindex="-1">${fmtTime(s.start)}</button>
+          <span class="line-text">${escapeHtml((s.text || '').trim())}</span>
+        </div>`)
       .join('');
-    return `<div class="transcript-synced" id="tr-${c.id}">${spans}</div>`;
+    return `<div class="transcript-script" id="tr-${c.id}">${lines}</div>`;
   }
   return `<pre>${escapeHtml(c.transcript || '')}</pre>`;
 }
@@ -477,7 +487,7 @@ function openSourceInTranscript(clipTitle, quote) {
   openClips.add(clipId);
   target.classList.add('open');
 
-  const synced = target.querySelector('.transcript-synced');
+  const synced = target.querySelector('.transcript-script');
   if (synced) {
     highlightInSegments(synced, quote, document.getElementById(`media-${clipId}`));
     return;
@@ -487,35 +497,35 @@ function openSourceInTranscript(clipTitle, quote) {
   else target.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-// Find the segments a quote spans, highlight them, and cue the player to the start.
+const normalizeText = (s) =>
+  (s || '').replace(/^["“”']+|["“”']+$/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+// Highlight every transcript line the quote refers to and cue the player to the
+// first. Matches at the line level, so it's robust even when the model bundles
+// several non-adjacent excerpts into one quote.
 function highlightInSegments(container, quote, media) {
   const segs = [...container.querySelectorAll('.seg')];
   segs.forEach((s) => s.classList.remove('cited'));
 
-  const q = (quote || '').replace(/^["“”']+|["“”']+$/g, '').trim().toLowerCase();
-  const texts = segs.map((s) => s.textContent);
-  const full = texts.join('').toLowerCase();
-  const idx = q ? full.indexOf(q) : -1;
-
-  if (idx === -1) {
+  const q = normalizeText(quote);
+  if (!q) {
     (segs[0] || container).scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
-  // Map [idx, idx+q.length) char range onto the segments it covers.
-  let acc = 0, first = -1, last = -1;
-  for (let i = 0; i < segs.length; i++) {
-    const len = texts[i].length;
-    if (first === -1 && idx < acc + len) first = i;
-    if (idx + q.length <= acc + len) { last = i; break; }
-    acc += len;
-  }
-  if (first === -1) first = 0;
-  if (last === -1) last = segs.length - 1;
+  const matched = segs.filter((s) => {
+    const t = normalizeText(s.querySelector('.line-text')?.textContent);
+    return t && (q.includes(t) || t.includes(q));
+  });
 
-  for (let i = first; i <= last; i++) segs[i].classList.add('cited');
-  if (media) media.currentTime = parseFloat(segs[first].dataset.start) || 0;
-  segs[first].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (!matched.length) {
+    (segs[0] || container).scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  matched.forEach((s) => s.classList.add('cited'));
+  if (media) media.currentTime = parseFloat(matched[0].dataset.start) || 0;
+  matched[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function highlightInPre(pre, quote) {

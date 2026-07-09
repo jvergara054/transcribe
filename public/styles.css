@@ -287,19 +287,36 @@ video.clip-media {
   display: block;
 }
 
-.transcript-synced {
-  line-height: 1.8;
-  color: var(--text);
+.transcript-script {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
-.seg {
+.line {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 5px 8px;
+  border-radius: 6px;
   cursor: pointer;
-  border-radius: 3px;
-  padding: 0 1px;
   transition: background .1s;
 }
-.seg:hover { background: #2a2f3a; }
-.seg.active { background: #6ea8fe40; }
-.seg.cited { background: #6ea8fe66; }
+.line:hover { background: #23283366; }
+.line .ts {
+  flex: 0 0 auto;
+  min-width: 36px;
+  text-align: right;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  background: transparent;
+  border: none;
+  padding: 2px 0 0;
+  cursor: pointer;
+}
+.line-text { line-height: 1.55; color: var(--text); }
+.line.active { background: #6ea8fe26; }
+.line.cited { background: #6ea8fe4d; }
 
 .chat-input-row { display: flex; gap: 8px; }
 .chat-input-row input {

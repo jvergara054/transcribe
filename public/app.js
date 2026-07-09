@@ -8,6 +8,7 @@ let openClips = new Set();
 let collapsedTranscripts = new Set();
 let pollTimer = null;
 let showArchived = false;
+let activeTab = 'overview';
 
 const appEl = document.querySelector('.app');
 // On mobile these toggle between the project list and the full-screen detail.
@@ -190,11 +191,22 @@ function analysisLabel(status) {
 // --- Detail: project view --------------------------------------------------
 
 async function selectProject(id) {
+  if (id !== selectedId) activeTab = 'overview'; // reset tab only on a real project switch
   selectedId = id;
   const project = await api(`/api/projects/${id}`);
   await loadProjects();
   renderProject(project);
   showDetail();
+}
+
+function setActiveTab(tab) {
+  activeTab = tab;
+  detail.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === tab));
+  detail.querySelectorAll('.tab-panel').forEach((p) => p.classList.toggle('active', p.dataset.panel === tab));
+  if (tab === 'chat') {
+    const log = document.getElementById('chat-log');
+    if (log) log.scrollTop = log.scrollHeight;
+  }
 }
 
 function renderProject(project) {
@@ -217,28 +229,39 @@ function renderProject(project) {
       </div>
     </div>
 
-    <label class="detail-drop" id="detail-drop">
-      <input type="file" id="file-input" accept="audio/*,.m4a,.mp3,.wav,.webm,.ogg,.flac" multiple hidden />
-      <span class="dropzone-title">Drop clips here or click to add</span>
-      <span class="dropzone-hint">one or many — mp3, m4a, wav, webm… up to 25 MB each</span>
-    </label>
-
-    ${combinedAnalysisHtml(project, doneCount)}
-
-    <div class="card">
-      <h3>Clips <span class="count">(${clips.length})</span></h3>
-      <div id="clips">${clips.length ? clips.map(clipHtml).join('') : '<p class="muted">No clips yet — add one above.</p>'}</div>
+    <div class="tabs">
+      <button class="tab ${activeTab === 'overview' ? 'active' : ''}" data-tab="overview">Overview</button>
+      <button class="tab ${activeTab === 'recordings' ? 'active' : ''}" data-tab="recordings">Recordings <span class="tab-count">${clips.length}</span></button>
+      <button class="tab ${activeTab === 'chat' ? 'active' : ''}" data-tab="chat">Chat</button>
     </div>
 
-    <div class="card">
-      <h3>Chat <span class="count">— across all clips</span></h3>
-      ${doneCount === 0
-        ? '<p class="muted">Add and process at least one clip to start chatting.</p>'
-        : `<div class="chat-log" id="chat-log"></div>
-           <form class="chat-input-row" id="chat-form">
-             <input type="text" id="chat-input" placeholder="Ask about these recordings…" autocomplete="off" />
-             <button class="btn" type="submit" id="chat-send">Send</button>
-           </form>`}
+    <div class="tab-panel ${activeTab === 'overview' ? 'active' : ''}" data-panel="overview">
+      ${combinedAnalysisHtml(project, doneCount)}
+    </div>
+
+    <div class="tab-panel ${activeTab === 'recordings' ? 'active' : ''}" data-panel="recordings">
+      <label class="detail-drop" id="detail-drop">
+        <input type="file" id="file-input" accept="audio/*,.m4a,.mp3,.wav,.webm,.ogg,.flac" multiple hidden />
+        <span class="dropzone-title">Drop clips here or click to add</span>
+        <span class="dropzone-hint">one or many — mp3, m4a, wav, webm… up to 25 MB each</span>
+      </label>
+      <div class="card">
+        <h3>Clips <span class="count">(${clips.length})</span></h3>
+        <div id="clips">${clips.length ? clips.map(clipHtml).join('') : '<p class="muted">No clips yet — add one above.</p>'}</div>
+      </div>
+    </div>
+
+    <div class="tab-panel ${activeTab === 'chat' ? 'active' : ''}" data-panel="chat">
+      <div class="card chat-card">
+        <h3>Chat <span class="count">— across all clips</span></h3>
+        ${doneCount === 0
+          ? '<p class="muted">Add and process at least one clip to start chatting.</p>'
+          : `<div class="chat-log" id="chat-log"></div>
+             <form class="chat-input-row" id="chat-form">
+               <input type="text" id="chat-input" placeholder="Ask about these recordings…" autocomplete="off" />
+               <button class="btn" type="submit" id="chat-send">Send</button>
+             </form>`}
+      </div>
     </div>`;
 
   bindProjectControls(project);
@@ -386,6 +409,11 @@ function clipHtml(c) {
 
 function bindProjectControls(project) {
   document.getElementById('back-btn').addEventListener('click', showList);
+
+  // Tabs
+  detail.querySelectorAll('.tab').forEach((t) => {
+    t.addEventListener('click', () => setActiveTab(t.dataset.tab));
+  });
   document.getElementById('delete-project-btn').addEventListener('click', () => deleteProject(project));
 
   document.getElementById('reanalyze-btn')?.addEventListener('click', async () => {
@@ -520,6 +548,8 @@ function openSourceInTranscript(clipTitle, quote) {
   if (!target) target = clipEls[0];
 
   const clipId = Number(target.dataset.id);
+  // Clips live on the Recordings tab — switch there so the highlight is visible.
+  setActiveTab('recordings');
   openClips.add(clipId);
   target.classList.add('open');
 

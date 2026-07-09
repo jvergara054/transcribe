@@ -150,6 +150,41 @@ body {
 }
 .icon-btn:hover { border-color: var(--danger); color: var(--danger); }
 
+/* --- Tabs ---------------------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+}
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--muted);
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); border-bottom-color: var(--accent-2); }
+.tab-count {
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--panel-2);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
 .card {
   background: var(--panel);
   border: 1px solid var(--border);

@@ -321,10 +321,18 @@ function bindClipMedia() {
     if (!container) return;
     const segs = [...container.querySelectorAll('.seg')];
 
-    segs.forEach((seg) => {
+    segs.forEach((seg, i) => {
       seg.addEventListener('click', () => {
-        media.currentTime = parseFloat(seg.dataset.start) || 0;
-        media.play().catch(() => {});
+        const start = parseFloat(seg.dataset.start) || 0;
+        const nextStart = i + 1 < segs.length ? (parseFloat(segs[i + 1].dataset.start) || Infinity) : Infinity;
+        const playingThis = media.currentTime >= start && media.currentTime < nextStart;
+        if (playingThis) {
+          // Clicking the line you're already on toggles pause/resume in place.
+          if (media.paused) media.play().catch(() => {}); else media.pause();
+        } else {
+          media.currentTime = start;
+          media.play().catch(() => {});
+        }
       });
     });
 

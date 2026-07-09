@@ -6,6 +6,7 @@ const newProjectBtn = document.getElementById('new-project-btn');
 let selectedId = null;
 let openClips = new Set();
 let collapsedTranscripts = new Set();
+let collapsedAnalysis = new Set();
 let pollTimer = null;
 let showArchived = false;
 let activeTab = 'overview';
@@ -293,7 +294,15 @@ function combinedAnalysisHtml(project, doneCount) {
       ? '<p class="muted">Combined analysis appears once a clip has been processed.</p>'
       : '<p class="muted">Not generated yet.</p><br /><button class="btn" id="reanalyze-btn">Generate combined analysis</button>';
   }
-  return `<div class="card" id="analysis-card"><h3>Combined Analysis</h3>${inner}</div>`;
+  const collapsed = collapsedAnalysis.has(project.id);
+  return `
+    <div class="card" id="analysis-card">
+      <div class="card-header">
+        <h3>Combined Analysis</h3>
+        <button type="button" class="linkbtn analysis-toggle">${collapsed ? 'Expand ▾' : 'Minimize ▴'}</button>
+      </div>
+      <div class="analysis-wrap${collapsed ? ' collapsed' : ''}" id="analysis-wrap">${inner}</div>
+    </div>`;
 }
 
 const VIDEO_EXTS = ['mp4', 'mov', 'm4v'];
@@ -409,6 +418,21 @@ function bindProjectControls(project) {
   // Tabs
   detail.querySelectorAll('.tab').forEach((t) => {
     t.addEventListener('click', () => setActiveTab(t.dataset.tab));
+  });
+
+  // Combined Analysis minimize/expand
+  document.querySelector('.analysis-toggle')?.addEventListener('click', (e) => {
+    const btn = e.currentTarget;
+    const wrap = document.getElementById('analysis-wrap');
+    if (collapsedAnalysis.has(project.id)) {
+      collapsedAnalysis.delete(project.id);
+      wrap?.classList.remove('collapsed');
+      btn.textContent = 'Minimize ▴';
+    } else {
+      collapsedAnalysis.add(project.id);
+      wrap?.classList.add('collapsed');
+      btn.textContent = 'Expand ▾';
+    }
   });
   document.getElementById('delete-project-btn').addEventListener('click', () => deleteProject(project));
 

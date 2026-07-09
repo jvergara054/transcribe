@@ -215,6 +215,15 @@ body {
   letter-spacing: .05em;
   color: var(--muted);
 }
+.card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.card-header h3 { margin: 0; }
+.analysis-wrap.collapsed { display: none; }
 .card ul { margin: 0; padding-left: 20px; }
 .card li { margin-bottom: 6px; line-height: 1.5; }
 .card p { margin: 0; line-height: 1.6; }

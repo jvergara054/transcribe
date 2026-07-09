@@ -318,6 +318,20 @@ video.clip-media {
 .line.active { background: #6ea8fe26; }
 .line.cited { background: #6ea8fe4d; }
 
+.linkbtn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+}
+.retrans-note { font-size: 13px; margin: 0 0 10px; }
+.retrans-row { margin-top: 12px; }
+.retrans-row .linkbtn { font-size: 12px; color: var(--muted); text-decoration: none; }
+.retrans-row .linkbtn:hover { color: var(--accent); }
+
 .chat-input-row { display: flex; gap: 8px; }
 .chat-input-row input {
   flex: 1;

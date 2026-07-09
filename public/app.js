@@ -347,12 +347,17 @@ function clipHtml(c) {
     body = `<p class="error-box">⚠ ${escapeHtml(c.error || 'Failed.')}</p>
             <br /><button class="btn secondary retry-clip" data-id="${c.id}">Retry</button>`;
   } else {
+    const hasTimes = c.segments && c.segments.length;
+    const noTimesNote = hasTimes ? '' :
+      `<p class="muted retrans-note">No timestamps on this clip yet — <button type="button" class="linkbtn retry-clip" data-id="${c.id}">re-transcribe to add the timestamped script view</button>.</p>`;
     body = `
       ${analysisSectionsHtml(c)}
       <h4>Recording</h4>
       ${mediaPlayerHtml(c)}
       <h4>Transcript</h4>
-      ${transcriptHtml(c)}`;
+      ${noTimesNote}
+      ${transcriptHtml(c)}
+      <div class="retrans-row"><button type="button" class="linkbtn retry-clip" data-id="${c.id}">↻ Re-transcribe</button></div>`;
   }
   return `
     <div class="clip${open}" data-id="${c.id}">
@@ -417,9 +422,10 @@ function bindProjectControls(project) {
     });
   });
 
-  // Clip retry
+  // Clip retry / re-transcribe (re-runs transcription + analysis for the clip)
   detail.querySelectorAll('.retry-clip').forEach((btn) => {
     btn.addEventListener('click', async () => {
+      if (/re-transcribe/i.test(btn.textContent) && !confirm('Re-transcribe this clip? It re-runs transcription and analysis.')) return;
       try {
         await api(`/api/recordings/${btn.dataset.id}/retry`, { method: 'POST' });
         selectProject(project.id);

@@ -276,6 +276,58 @@ function combinedAnalysisHtml(project, doneCount) {
   return `<div class="card" id="analysis-card"><h3>Combined Analysis</h3>${inner}</div>`;
 }
 
+const VIDEO_EXTS = ['mp4', 'mov', 'm4v'];
+
+function isVideoClip(c) {
+  const ext = (c.filename || c.title || '').split('.').pop().toLowerCase();
+  return VIDEO_EXTS.includes(ext);
+}
+
+function mediaPlayerHtml(c) {
+  const src = `/api/recordings/${c.id}/media`;
+  if (isVideoClip(c)) {
+    return `<video class="clip-media" id="media-${c.id}" src="${src}" controls preload="metadata" playsinline></video>`;
+  }
+  return `<audio class="clip-media" id="media-${c.id}" src="${src}" controls preload="metadata"></audio>`;
+}
+
+// Segment-synced transcript when timestamps exist; plain text otherwise.
+function transcriptHtml(c) {
+  if (c.segments && c.segments.length) {
+    const spans = c.segments
+      .map((s, i) => `<span class="seg" data-i="${i}" data-start="${s.start}">${escapeHtml((s.text || '').trim())} </span>`)
+      .join('');
+    return `<div class="transcript-synced" id="tr-${c.id}">${spans}</div>`;
+  }
+  return `<pre>${escapeHtml(c.transcript || '')}</pre>`;
+}
+
+// Wire click-to-seek and play-along highlighting for each clip's player.
+function bindClipMedia() {
+  detail.querySelectorAll('.clip-media').forEach((media) => {
+    const id = media.id.replace('media-', '');
+    const container = document.getElementById(`tr-${id}`);
+    if (!container) return;
+    const segs = [...container.querySelectorAll('.seg')];
+
+    segs.forEach((seg) => {
+      seg.addEventListener('click', () => {
+        media.currentTime = parseFloat(seg.dataset.start) || 0;
+        media.play().catch(() => {});
+      });
+    });
+
+    media.addEventListener('timeupdate', () => {
+      const t = media.currentTime;
+      let active = -1;
+      for (let i = 0; i < segs.length; i++) {
+        if ((parseFloat(segs[i].dataset.start) || 0) <= t) active = i; else break;
+      }
+      segs.forEach((s, i) => s.classList.toggle('active', i === active));
+    });
+  });
+}
+
 function clipHtml(c) {
   const open = openClips.has(c.id) ? ' open' : '';
   let body;
@@ -287,7 +339,10 @@ function clipHtml(c) {
   } else {
     body = `
       ${analysisSectionsHtml(c)}
-      <h4>Transcript</h4><pre>${escapeHtml(c.transcript || '')}</pre>`;
+      <h4>Recording</h4>
+      ${mediaPlayerHtml(c)}
+      <h4>Transcript</h4>
+      ${transcriptHtml(c)}`;
   }
   return `
     <div class="clip${open}" data-id="${c.id}">
@@ -324,6 +379,9 @@ function bindProjectControls(project) {
   ['dragleave', 'drop'].forEach((ev) =>
     drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('drag'); }));
   drop.addEventListener('drop', (e) => uploadClips(project.id, e.dataTransfer.files));
+
+  // Clip media players (click-to-seek + play-along highlighting)
+  bindClipMedia();
 
   // Clip accordion toggles
   detail.querySelectorAll('.clip-head').forEach((head) => {
@@ -415,12 +473,49 @@ function openSourceInTranscript(clipTitle, quote) {
   }
   if (!target) target = clipEls[0];
 
-  openClips.add(Number(target.dataset.id));
+  const clipId = Number(target.dataset.id);
+  openClips.add(clipId);
   target.classList.add('open');
 
+  const synced = target.querySelector('.transcript-synced');
+  if (synced) {
+    highlightInSegments(synced, quote, document.getElementById(`media-${clipId}`));
+    return;
+  }
   const pre = target.querySelector('.clip-body pre');
   if (pre) highlightInPre(pre, quote);
   else target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// Find the segments a quote spans, highlight them, and cue the player to the start.
+function highlightInSegments(container, quote, media) {
+  const segs = [...container.querySelectorAll('.seg')];
+  segs.forEach((s) => s.classList.remove('cited'));
+
+  const q = (quote || '').replace(/^["“”']+|["“”']+$/g, '').trim().toLowerCase();
+  const texts = segs.map((s) => s.textContent);
+  const full = texts.join('').toLowerCase();
+  const idx = q ? full.indexOf(q) : -1;
+
+  if (idx === -1) {
+    (segs[0] || container).scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  // Map [idx, idx+q.length) char range onto the segments it covers.
+  let acc = 0, first = -1, last = -1;
+  for (let i = 0; i < segs.length; i++) {
+    const len = texts[i].length;
+    if (first === -1 && idx < acc + len) first = i;
+    if (idx + q.length <= acc + len) { last = i; break; }
+    acc += len;
+  }
+  if (first === -1) first = 0;
+  if (last === -1) last = segs.length - 1;
+
+  for (let i = first; i <= last; i++) segs[i].classList.add('cited');
+  if (media) media.currentTime = parseFloat(segs[first].dataset.start) || 0;
+  segs[first].scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function highlightInPre(pre, quote) {

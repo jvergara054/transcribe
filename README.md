@@ -39,7 +39,10 @@ gives you a combined view across all of them.
 - The project's **Combined Analysis** (summary, insights, next steps across all
   clips) regenerates automatically whenever you add or remove a clip.
 - Use the project **Chat** to ask questions spanning every clip in the project.
-- Expand any clip to see its individual transcript and analysis.
+  Each answer cites the supporting transcript excerpt; tap a source to jump to it.
+- Expand any clip to see its analysis, an **audio/video player**, and a
+  **timestamped transcript** — tap any line to play from that moment, and the
+  current line highlights as it plays. (Video files get a video player.)
 
 ## Notes
 

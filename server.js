@@ -112,11 +112,12 @@ const upload = multer({
 
 async function processRecording(id, filePath, projectId) {
   try {
-    const { text, duration } = await transcribeAudio(filePath);
+    const { text, duration, segments } = await transcribeAudio(filePath);
     const analysis = await analyzeTranscript(text);
     db.setRecordingResult(id, {
       transcript: text,
       duration,
+      segments,
       summary: analysis.summary,
       insights: analysis.insights,
       next_steps: analysis.next_steps,
@@ -270,6 +271,16 @@ app.post('/api/projects/:id/recordings', upload.array('audio', 20), (req, res) =
 });
 
 // --- Individual clip routes ------------------------------------------------
+
+// Stream a clip's audio/video for in-app playback (supports range requests so
+// the player can seek). Behind auth like the rest of /api.
+app.get('/api/recordings/:id/media', (req, res) => {
+  const recording = db.getRecording(Number(req.params.id));
+  if (!recording) return res.status(404).json({ error: 'Not found' });
+  res.sendFile(path.join(UPLOAD_DIR, recording.filename), (err) => {
+    if (err && !res.headersSent) res.status(404).end();
+  });
+});
 
 app.post('/api/recordings/:id/retry', (req, res) => {
   const recording = db.getRecording(Number(req.params.id));

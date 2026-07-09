@@ -247,6 +247,11 @@ function renderProject(project) {
       e.preventDefault();
       sendChat(project.id);
     });
+    // Delegated: clicking a source jumps to and highlights the transcript.
+    document.getElementById('chat-log').addEventListener('click', (e) => {
+      const src = e.target.closest('.source');
+      if (src) openSourceInTranscript(src.dataset.clip, src.dataset.quote);
+    });
   }
 
   if (anyProcessing || project.analysis_status === 'processing') scheduleRefresh();
@@ -371,13 +376,66 @@ function scheduleRefresh() {
 
 // --- Chat ------------------------------------------------------------------
 
+function chatMsgHtml(m) {
+  const bubble = `<div class="chat-msg ${m.role}">${escapeHtml(m.content)}</div>`;
+  if (m.role === 'assistant' && m.sources && m.sources.length) {
+    return bubble + sourcesCardHtml(m.sources);
+  }
+  return bubble;
+}
+
+function sourcesCardHtml(sources) {
+  const items = sources.map((s) => `
+    <button class="source" data-clip="${escapeHtml(s.clip || '')}" data-quote="${escapeHtml(s.quote || '')}">
+      <span class="source-clip">📄 ${escapeHtml(s.clip || 'Transcript')}</span>
+      <span class="source-quote">“${escapeHtml(s.quote || '')}”</span>
+    </button>`).join('');
+  return `<div class="sources-card"><div class="sources-title">Sources — tap to see it in the transcript</div>${items}</div>`;
+}
+
 function renderChat(messages) {
   const log = document.getElementById('chat-log');
   if (!log) return;
-  log.innerHTML = messages
-    .map((m) => `<div class="chat-msg ${m.role}">${escapeHtml(m.content)}</div>`)
-    .join('');
+  log.innerHTML = messages.map(chatMsgHtml).join('');
   log.scrollTop = log.scrollHeight;
+}
+
+// Open the cited clip and highlight the quoted passage in its transcript.
+function openSourceInTranscript(clipTitle, quote) {
+  const clipEls = [...detail.querySelectorAll('.clip')];
+  if (!clipEls.length) return;
+  const wanted = (clipTitle || '').toLowerCase().trim();
+
+  let target =
+    clipEls.find((el) => (el.querySelector('.clip-title')?.textContent || '').toLowerCase().trim() === wanted) ||
+    (wanted && clipEls.find((el) => (el.querySelector('.clip-title')?.textContent || '').toLowerCase().includes(wanted)));
+  if (!target) {
+    const m = wanted.match(/clip\s*(\d+)/);
+    if (m) target = clipEls[Number(m[1]) - 1];
+  }
+  if (!target) target = clipEls[0];
+
+  openClips.add(Number(target.dataset.id));
+  target.classList.add('open');
+
+  const pre = target.querySelector('.clip-body pre');
+  if (pre) highlightInPre(pre, quote);
+  else target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function highlightInPre(pre, quote) {
+  const text = pre.textContent;
+  const q = (quote || '').replace(/^["“”']+|["“”']+$/g, '').trim();
+  const idx = q ? text.toLowerCase().indexOf(q.toLowerCase()) : -1;
+  if (idx === -1) {
+    pre.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  const before = text.slice(0, idx);
+  const match = text.slice(idx, idx + q.length);
+  const after = text.slice(idx + q.length);
+  pre.innerHTML = `${escapeHtml(before)}<mark>${escapeHtml(match)}</mark>${escapeHtml(after)}`;
+  pre.querySelector('mark').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 async function sendChat(projectId) {
@@ -395,12 +453,12 @@ async function sendChat(projectId) {
   log.scrollTop = log.scrollHeight;
 
   try {
-    const { answer } = await api(`/api/projects/${projectId}/chat`, {
+    const { answer, sources } = await api(`/api/projects/${projectId}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question }),
     });
-    document.getElementById('pending').outerHTML = `<div class="chat-msg assistant">${escapeHtml(answer)}</div>`;
+    document.getElementById('pending').outerHTML = chatMsgHtml({ role: 'assistant', content: answer, sources });
   } catch (e) {
     document.getElementById('pending')?.remove();
     toast(e.message);

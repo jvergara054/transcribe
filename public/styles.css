@@ -233,6 +233,47 @@ details.transcript pre {
 .chat-msg.user { align-self: flex-end; background: var(--accent-2); color: white; }
 .chat-msg.assistant { align-self: flex-start; background: var(--panel-2); border: 1px solid var(--border); }
 
+/* --- Chat source citations ----------------------------------------------- */
+
+.sources-card {
+  align-self: flex-start;
+  max-width: 90%;
+  margin: -4px 0 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sources-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--muted);
+}
+.source {
+  text-align: left;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px 11px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: inherit;
+  transition: border-color .15s, background .15s;
+}
+.source:hover { border-color: var(--accent); background: #23283355; }
+.source-clip { font-size: 11px; font-weight: 600; color: var(--accent); }
+.source-quote { font-size: 12px; color: var(--muted); line-height: 1.45; }
+
+.clip-body mark {
+  background: #6ea8fe55;
+  color: var(--text);
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
 .chat-input-row { display: flex; gap: 8px; }
 .chat-input-row input {
   flex: 1;

@@ -243,9 +243,9 @@ app.post('/api/projects/:id/chat', async (req, res) => {
   try {
     const history = db.listProjectMessages(project.id);
     db.addProjectMessage(project.id, 'user', question);
-    const answer = await chatAboutProject(project, clips, history, question);
-    db.addProjectMessage(project.id, 'assistant', answer);
-    res.json({ answer });
+    const { answer, sources } = await chatAboutProject(project, clips, history, question);
+    db.addProjectMessage(project.id, 'assistant', answer, sources);
+    res.json({ answer, sources });
   } catch (err) {
     console.error(`Chat failed for project ${project.id}:`, err.message);
     res.status(500).json({ error: err.message });

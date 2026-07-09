@@ -223,6 +223,7 @@ body {
   margin-bottom: 12px;
 }
 .card-header h3 { margin: 0; }
+.card-header .analysis-toggle { font-size: 13px; }
 .analysis-wrap.collapsed { display: none; }
 .card ul { margin: 0; padding-left: 20px; }
 .card li { margin-bottom: 6px; line-height: 1.5; }

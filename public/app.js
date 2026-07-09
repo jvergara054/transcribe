@@ -5,6 +5,7 @@ const newProjectBtn = document.getElementById('new-project-btn');
 
 let selectedId = null;
 let openClips = new Set();
+let collapsedTranscripts = new Set();
 let pollTimer = null;
 let showArchived = false;
 
@@ -350,13 +351,17 @@ function clipHtml(c) {
     const hasTimes = c.segments && c.segments.length;
     const noTimesNote = hasTimes ? '' :
       `<p class="muted retrans-note">No timestamps on this clip yet — <button type="button" class="linkbtn retry-clip" data-id="${c.id}">re-transcribe to add the timestamped script view</button>.</p>`;
+    const collapsed = collapsedTranscripts.has(c.id);
     body = `
       ${analysisSectionsHtml(c)}
       <h4>Recording</h4>
       ${mediaPlayerHtml(c)}
-      <h4>Transcript</h4>
+      <div class="transcript-header">
+        <h4>Transcript</h4>
+        <button type="button" class="linkbtn transcript-toggle" data-id="${c.id}">${collapsed ? 'Expand ▾' : 'Minimize ▴'}</button>
+      </div>
       ${noTimesNote}
-      ${transcriptHtml(c)}
+      <div class="transcript-wrap${collapsed ? ' collapsed' : ''}" id="trwrap-${c.id}">${transcriptHtml(c)}</div>
       <div class="retrans-row"><button type="button" class="linkbtn retry-clip" data-id="${c.id}">↻ Re-transcribe</button></div>`;
   }
   return `
@@ -397,6 +402,23 @@ function bindProjectControls(project) {
 
   // Clip media players (click-to-seek + play-along highlighting)
   bindClipMedia();
+
+  // Transcript minimize/expand
+  detail.querySelectorAll('.transcript-toggle').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = Number(btn.dataset.id);
+      const wrap = document.getElementById(`trwrap-${id}`);
+      if (collapsedTranscripts.has(id)) {
+        collapsedTranscripts.delete(id);
+        wrap?.classList.remove('collapsed');
+        btn.textContent = 'Minimize ▴';
+      } else {
+        collapsedTranscripts.add(id);
+        wrap?.classList.add('collapsed');
+        btn.textContent = 'Expand ▾';
+      }
+    });
+  });
 
   // Clip accordion toggles
   detail.querySelectorAll('.clip-head').forEach((head) => {
@@ -492,6 +514,14 @@ function openSourceInTranscript(clipTitle, quote) {
   const clipId = Number(target.dataset.id);
   openClips.add(clipId);
   target.classList.add('open');
+
+  // Expand the transcript if it was minimized, so the highlight is visible.
+  if (collapsedTranscripts.has(clipId)) {
+    collapsedTranscripts.delete(clipId);
+    target.querySelector('.transcript-wrap')?.classList.remove('collapsed');
+    const tbtn = target.querySelector('.transcript-toggle');
+    if (tbtn) tbtn.textContent = 'Minimize ▴';
+  }
 
   const synced = target.querySelector('.transcript-script');
   if (synced) {
